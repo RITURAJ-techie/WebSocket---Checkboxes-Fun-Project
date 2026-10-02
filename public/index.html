@@ -72,6 +72,68 @@
             color: rgba(255, 255, 255, 0.65);
         }
 
+
+        /* ==========================================
+           ERROR MESSAGE UI
+        ========================================== */
+
+        #error-message {
+            display: none;
+
+            margin-top: 25px;
+
+            min-width: 280px;
+
+            padding: 14px 24px;
+
+            border-radius: 12px;
+
+            background: rgba(255, 70, 70, 0.15);
+
+            border: 1px solid rgba(255, 100, 100, 0.45);
+
+            color: #ffb5b5;
+
+            font-size: 17px;
+
+            font-weight: 600;
+
+            text-align: center;
+
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+
+            animation:
+                errorAppear 0.25s ease;
+        }
+
+
+        /* ==========================================
+           ERROR ANIMATION
+        ========================================== */
+
+        @keyframes errorAppear {
+
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        /* ==========================================
+           CHECKBOX CONTAINER
+        ========================================== */
+
         #container {
             width: 95%;
             max-width: 1100px;
@@ -205,6 +267,12 @@
                 width: 42px;
                 height: 42px;
             }
+
+            #error-message {
+                min-width: auto;
+                width: 90%;
+                font-size: 15px;
+            }
         }
     </style>
 </head>
@@ -213,11 +281,22 @@
 
     <h1>Checkboxes</h1>
 
+
+    <!-- ==========================================
+         ADDED ERROR MESSAGE
+    =========================================== -->
+
+    <div id="error-message"></div>
+
+
     <div id="container"></div>
+
     <script src="/socket.io/socket.io.js"></script>
+
     <script>
 
         const socket = io()
+
         /*
         const container = document.getElementById('container');
         const CHECKBOX_COUNT = 100;
@@ -231,6 +310,44 @@
         const container = document.getElementById('container')
         const CHECKBOX_COUNT=100;
 
+
+        /* ==========================================
+           ADDED ERROR MESSAGE HANDLING
+        ========================================== */
+
+        const errorMessage =
+            document.getElementById('error-message');
+
+
+        let errorTimeout;
+
+
+        socket.on('server:error',(data)=>{
+
+            const error = data.error;
+
+
+            clearTimeout(errorTimeout);
+
+
+            errorMessage.textContent =
+                error;
+
+
+            errorMessage.style.display =
+                'block';
+
+
+            errorTimeout = setTimeout(()=>{
+
+                errorMessage.style.display =
+                    'none';
+
+            }, 3000);
+
+        });
+
+
         socket.on('server:checkbox:change',data=>{
             console.log(`Socket Server Event`,data);
             const {index,checked}=data;
@@ -240,7 +357,10 @@
             }
         });
 
-        window.addEventListener('load',async()=>{
+        async function fetchStateFromServer() {
+            while (container.firstChild){
+                container.removeChild(container.firstChild);
+            }
             const response = await fetch('/checkboxes',{ method:'GET' })
             const data = await response.json()
             if(data && data.checkboxes){
@@ -256,10 +376,15 @@
                     const checked = event.target.checked;
                     console.log('Checkbox Changed', { index,checked })
                     socket.emit('client:checkbox:change',{ index , checked })
+                    fetchStateFromServer();
                 });
                 container.appendChild(input);
                 });
             }
+        }
+
+        window.addEventListener('load',async()=>{
+            fetchStateFromServer()
         })
 
     </script>
